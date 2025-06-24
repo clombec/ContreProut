@@ -1,3 +1,5 @@
 set PYTHONOPTIMIZE=0
-venv\Scripts\activate && pyinstaller contreprout.py --clean --noconfirm --onefile && rmdir /S /Q build 
+rmdir /S /Q build 2>nul
+rmdir /S /Q dist 2>nul
+venv\Scripts\activate && pyinstaller contreprout.py --clean --noconfirm --onefile --noconsole && rmdir /S /Q build  && copy /Y "icon.png" "dist\\icon.png"
 pause
