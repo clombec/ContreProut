@@ -11,35 +11,90 @@ import unicodedata
 from bs4 import BeautifulSoup
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QLabel, QPushButton,
-    QLineEdit, QMessageBox
+    QLineEdit, QMessageBox, QGraphicsDropShadowEffect
 )
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QPalette, QLinearGradient, QColor, QBrush, QIcon
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class ContrepeteriesGame(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Jeu de Contrepèteries")
+        self.setWindowTitle("ContreProut")
         self.setGeometry(100, 100, 800, 300)
+        self.setWindowIcon(QIcon("icon.png"))
         self.filename = 'contrepeteries.json'
         self.base_url = "https://lapoulequimue.fr/top/page/"
         self.start_page = 1
         self.end_page = 100
         self.contrepeteries = self.load_contrepeteries()
         self.current = None
+        # Dégradé de fond
+        palette = QPalette()
+        gradient = QLinearGradient(0, 0, 0, self.height())
+        gradient.setColorAt(0.0, QColor("lightblue"))
+        gradient.setColorAt(1.0, QColor("plum"))
+        palette.setBrush(QPalette.Window, QBrush(gradient))
+        self.setAutoFillBackground(True)
+        self.setPalette(palette)
+
+        # Layout
         self.layout = QVBoxLayout()
+        self.layout.setAlignment(Qt.AlignCenter)
+
+        # Label principal
         self.label = QLabel("Cliquez sur 'Nouvelle' pour commencer.")
         self.label.setAlignment(Qt.AlignCenter)
-        self.label.setFont(QFont("Arial", 18, QFont.Bold))
+        self.label.setFont(QFont("Courier", 32))
+        self.label.setStyleSheet("color: #333333;")
         self.label.setWordWrap(True)
 
+        # Champ de saisie
         self.input = QLineEdit()
-        self.solution_btn = QPushButton("Voir la solution")
-        self.next_btn = QPushButton("Nouvelle")
-        self.check_btn = QPushButton("Vérifier")
+        self.input.setPlaceholderText("Entrer les syllabes de la contrepetrie")
+        self.input.setStyleSheet("""
+            QLineEdit {
+                border: 2px solid #ccc;
+                border-radius: 10px;
+                padding: 8px;
+                font-size: 18px;
+            }
+            QLineEdit:focus {
+                border: 2px solid #66afe9;
+                background-color: #f0f8ff;
+            }
+        """)
 
+        # Ajout de l'effet d'ombre
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(10)
+        shadow.setOffset(2, 2)
+        shadow.setColor(QColor(0, 0, 0, 80))
+        self.input.setGraphicsEffect(shadow)
+
+
+        # Boutons
+        self.check_btn = QPushButton("✅ Vérifier")
+        self.solution_btn = QPushButton("💡 Solution")
+        self.next_btn = QPushButton("➡️ Nouvelle")
+
+        for btn, color in zip([self.check_btn, self.solution_btn, self.next_btn], ["#007BFF", "#FFA500", "#28A745"]):
+            btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {color};
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    padding: 10px 20px;
+                    font-size: 16px;
+                }}
+                QPushButton:hover {{
+                    background-color: #444;
+                }}
+            """)
+
+        # Ajout au layout
         self.layout.addWidget(self.label)
         self.layout.addWidget(self.input)
         self.layout.addWidget(self.check_btn)
@@ -47,6 +102,7 @@ class ContrepeteriesGame(QWidget):
         self.layout.addWidget(self.next_btn)
         self.setLayout(self.layout)
 
+        # Connexions
         self.solution_btn.clicked.connect(self.show_solution)
         self.next_btn.clicked.connect(self.new_contrepeterie)
         self.check_btn.clicked.connect(self.check_answer)
@@ -76,7 +132,6 @@ class ContrepeteriesGame(QWidget):
         try:
             response = requests.get(url, verify=False)
             soup = BeautifulSoup(response.content, 'html.parser')
-            print(soup)
             contrepeteries = []
             for item in soup.find_all('article', class_='fl-post'):
                 try:
@@ -84,7 +139,6 @@ class ContrepeteriesGame(QWidget):
                     title = title_tag.text.strip()
                     link = title_tag.find('a')['href']
                     solution_list = self.scrape_solution(link)
-                    # solution_str = ' <-> '.join(solution_list) if solution_list else "Solution non trouvée."
                     contrepeteries.append((title, link, solution_list))
                 except:
                     continue
@@ -124,7 +178,6 @@ class ContrepeteriesGame(QWidget):
             solution_text = ' <-> '.join(self.current[2]) if isinstance(self.current[2], list) else str(self.current[2])
             QMessageBox.information(self, "Solution", solution_text)
 
-
     def normalize_text(self, text):
         text = text.lower()
         text = ''.join(c for c in unicodedata.normalize('NFD', text)
@@ -134,17 +187,11 @@ class ContrepeteriesGame(QWidget):
     def check_answer(self):
         if self.current:
             user_input = self.normalize_text(self.input.text())
-
-            # Séparateurs possibles
             separators = r"\s*(?:<->|et|&|,|/|:|\s)\s*"
-
-            # Découpe la réponse utilisateur en syllabes
             user_parts = sorted([
                 part.strip() for part in re.split(separators, user_input)
                 if part.strip()
             ])
-
-            # Récupère la solution attendue (déjà une liste)
             correct_parts = sorted([
                 self.normalize_text(part) for part in self.current[2]
             ])
@@ -153,7 +200,6 @@ class ContrepeteriesGame(QWidget):
             else:
                 solution_text = ' <-> '.join(self.current[2])
                 QMessageBox.warning(self, "Résultat", f"❌ Incorrect. Solution : {solution_text}")
-
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
