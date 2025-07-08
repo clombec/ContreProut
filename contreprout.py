@@ -22,7 +22,7 @@ class ContrepeteriesGame(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("ContreProut")
-        self.setGeometry(100, 100, 800, 300)
+        self.setGeometry(100, 100, 800, 350)
         self.setWindowIcon(QIcon("icon.png"))
         self.filename = 'contrepeteries.json'
         self.base_url = "https://lapoulequimue.fr/top/page/"
@@ -63,6 +63,7 @@ class ContrepeteriesGame(QWidget):
             QLineEdit:focus {
                 border: 2px solid #66afe9;
                 background-color: #f0f8ff;
+                color: #222;
             }
         """)
 
@@ -77,8 +78,9 @@ class ContrepeteriesGame(QWidget):
         # Boutons
         self.check_btn = QPushButton("✅ Vérifier")
         self.solution_btn = QPushButton("💡 Solution")
-        self.next_btn = QPushButton("➡️ Nouvelle")
-
+        self.next_btn = QPushButton("🆕 Nouvelle")
+        self.input.returnPressed.connect(self.check_btn.click)
+        
         for btn, color in zip([self.check_btn, self.solution_btn, self.next_btn], ["#007BFF", "#FFA500", "#28A745"]):
             btn.setStyleSheet(f"""
                 QPushButton {{
@@ -196,7 +198,9 @@ class ContrepeteriesGame(QWidget):
                 self.normalize_text(part) for part in self.current[2]
             ])
             if user_parts == correct_parts:
-                QMessageBox.information(self, "Résultat", "✅ Correct !")
+                msg = QMessageBox(QMessageBox.Information, "Résultat", "✅ Correct !", parent=self)
+                msg.finished.connect(self.new_contrepeterie)
+                msg.exec_()
             else:
                 solution_text = ' <-> '.join(self.current[2])
                 QMessageBox.warning(self, "Résultat", f"❌ Incorrect. Solution : {solution_text}")
